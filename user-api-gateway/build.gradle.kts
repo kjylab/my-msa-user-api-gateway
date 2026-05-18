@@ -25,6 +25,7 @@ dependencies {
 
     implementation("org.springframework.cloud:spring-cloud-starter-gateway:4.1.9")
     implementation("org.springframework.boot:spring-boot-starter-webflux:3.3.13")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.5.0")
 
