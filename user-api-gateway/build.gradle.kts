@@ -12,6 +12,8 @@ plugins {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 
     implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
 
