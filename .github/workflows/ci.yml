@@ -69,8 +69,19 @@ jobs:
       - name: Install Newman
         run: npm install -g newman newman-reporter-htmlextra
 
-      - name: Wait for ArgoCD sync
-        run: sleep 90
+      - name: Wait for gateway to be ready
+        run: |
+          BASE_URL="http://kt-cloud-nlb-4cc74b5956284fbb.elb.ap-northeast-2.amazonaws.com"
+          echo "Waiting for gateway health..."
+          for i in $(seq 1 20); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/healthz")
+            if [ "$STATUS" = "200" ]; then
+              echo "Gateway ready (attempt $i)"
+              break
+            fi
+            echo "Attempt $i/20: status=$STATUS, retrying in 15s..."
+            sleep 15
+          done
 
       - name: Run E2E tests
         run: |
