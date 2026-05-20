@@ -25,6 +25,8 @@ class JwtAuthFilter(private val jwtTokenParser: JwtTokenParser) : WebFilter {
             "/healthz",
             "/actuator",
             "/prometheus",
+            "/circuitbreakers",
+            "/circuitbreakerevents",
         )
     }
 
