@@ -1,0 +1,362 @@
+{
+  "info": {
+    "name": "Troica Market MSA - E2E",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/sign-up",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const ts = Date.now();",
+                  "pm.environment.set('testEmail', `e2e-${ts}@troica.dev`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Response has userId', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('userId');",
+                  "  pm.expect(body.userId).to.be.a('string');",
+                  "  pm.environment.set('userId', body.userId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Test1234!\",\n  \"name\": \"E2E Test User\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/sign-up"
+          }
+        },
+        {
+          "name": "POST /api/auth/sign-in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has accessToken', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('accessToken');",
+                  "  pm.expect(body.accessToken).to.be.a('string');",
+                  "  pm.environment.set('accessToken', body.accessToken);",
+                  "});",
+                  "pm.test('Response has refreshToken', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('refreshToken');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Test1234!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/sign-in"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "POST /api/v1/users/me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has profile', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('profile');",
+                  "  pm.expect(body.profile).to.have.property('id');",
+                  "  pm.expect(body.profile).to.have.property('email');",
+                  "  pm.expect(body.profile.email).to.equal(pm.environment.get('testEmail'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{userId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/users/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET /api/v1/products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has products array', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('products');",
+                  "  pm.expect(body.products).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/products"
+          }
+        },
+        {
+          "name": "GET /api/v1/products/:id (id=1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 404', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Response has product object', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('product');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/products/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventories",
+      "item": [
+        {
+          "name": "GET /api/v1/inventories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has inventories array', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('inventories');",
+                  "  pm.expect(body.inventories).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/inventories"
+          }
+        },
+        {
+          "name": "GET /api/v1/inventories/:id (id=1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 404', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Response has inventory object', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('inventory');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/inventories/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "GET /api/v1/orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has orders array', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('orders');",
+                  "  pm.expect(body.orders).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/orders"
+          }
+        },
+        {
+          "name": "POST /api/v1/orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Response has order with id', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('order');",
+                  "  pm.expect(body.order).to.have.property('id');",
+                  "  pm.expect(body.order.id).to.be.a('number');",
+                  "  pm.environment.set('createdOrderId', body.order.id);",
+                  "});",
+                  "pm.test('Order status is PENDING', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.order.status).to.equal('PENDING');",
+                  "});",
+                  "pm.test('Order has orderLineItems', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.order.orderLineItems).to.be.an('array');",
+                  "  pm.expect(body.order.orderLineItems.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"inventoryId\": 1,\n      \"productId\": \"PROD-001\",\n      \"skuCode\": \"SKU-001\",\n      \"price\": 10000,\n      \"quantity\": 2,\n      \"status\": \"PENDING\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders"
+          }
+        },
+        {
+          "name": "GET /api/v1/orders/:id (created order)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returned order matches created id', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('order');",
+                  "  pm.expect(body.order.id).to.equal(Number(pm.environment.get('createdOrderId')));",
+                  "});",
+                  "pm.test('Order has orderLineItems', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.order.orderLineItems).to.be.an('array');",
+                  "  pm.expect(body.order.orderLineItems[0].productId).to.equal('PROD-001');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/orders/{{createdOrderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /healthz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is UP', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.equal('UP');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/healthz"
+          }
+        }
+      ]
+    }
+  ]
+}
