@@ -26,6 +26,8 @@ management:
       base-path: /
       path-mapping:
         health: healthz
+      exposure:
+        include: health,circuitbreakers,circuitbreakerevents
   endpoint:
     health:
       show-details: always
