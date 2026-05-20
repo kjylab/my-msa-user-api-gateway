@@ -5,39 +5,47 @@ import dev.ktcloud.black.inventory.service.adapter.presentation.web.inbound.grpc
 import dev.ktcloud.black.inventory.service.adapter.presentation.web.inbound.grpc.Empty
 import dev.ktcloud.black.user.api.gateway.application.inventory.port.inbound.FetchInventoriesQuery
 import dev.ktcloud.black.user.api.gateway.application.inventory.port.inbound.FetchInventoryQuery
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
+import io.github.resilience4j.kotlin.circuitbreaker.executeSuspendFunction
 import net.devh.boot.grpc.client.inject.GrpcClient
 import org.springframework.stereotype.Service
 
 @Service
 class InventoryQueryService(
     @GrpcClient("inventory-service")
-    private val inventoryServiceStub: InventoryServiceGrpcKt.InventoryServiceCoroutineStub
+    private val inventoryServiceStub: InventoryServiceGrpcKt.InventoryServiceCoroutineStub,
+    circuitBreakerRegistry: CircuitBreakerRegistry,
 ): FetchInventoryQuery, FetchInventoriesQuery {
+
+    private val circuitBreaker = circuitBreakerRegistry.circuitBreaker("inventory-cb")
+
     override suspend fun fetchInventory(query: FetchInventoryQuery.In): FetchInventoryQuery.Out {
-        val inventoryResponseDto = inventoryServiceStub.fetchInventory(
+        return circuitBreaker.executeSuspendFunction {
+            val inventoryResponseDto = inventoryServiceStub.fetchInventory(
                 FetchInventoryRequest.newBuilder()
                     .setId(query.id)
                     .build(),
             )
-
-        return FetchInventoryQuery.Out(
-            id = inventoryResponseDto.id,
-            productId = inventoryResponseDto.productId,
-            skuCode = inventoryResponseDto.skuCode,
-            quantity = inventoryResponseDto.quantity,
-        )
+            FetchInventoryQuery.Out(
+                id = inventoryResponseDto.id,
+                productId = inventoryResponseDto.productId,
+                skuCode = inventoryResponseDto.skuCode,
+                quantity = inventoryResponseDto.quantity,
+            )
+        }
     }
 
     override suspend fun fetchAll(): List<FetchInventoriesQuery.Out> {
-        val inventoryResponseDtos = inventoryServiceStub.fetchInventories(Empty.getDefaultInstance())
-
-        return inventoryResponseDtos.inventoriesList.map {
-            FetchInventoriesQuery.Out(
-                id = it.id,
-                productId = it.productId,
-                skuCode = it.skuCode,
-                quantity = it.quantity,
-            )
+        return circuitBreaker.executeSuspendFunction {
+            val inventoryResponseDtos = inventoryServiceStub.fetchInventories(Empty.getDefaultInstance())
+            inventoryResponseDtos.inventoriesList.map {
+                FetchInventoriesQuery.Out(
+                    id = it.id,
+                    productId = it.productId,
+                    skuCode = it.skuCode,
+                    quantity = it.quantity,
+                )
+            }
         }
     }
 }

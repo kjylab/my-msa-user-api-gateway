@@ -1,5 +1,6 @@
 package dev.ktcloud.black.user.api.gateway.adapter.presentation.web.configuration
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
 import io.grpc.Status
 import io.grpc.StatusException
 import io.grpc.StatusRuntimeException
@@ -10,6 +11,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(CallNotPermittedException::class)
+    fun handleCircuitBreakerOpen(e: CallNotPermittedException): ResponseEntity<Map<String, Any>> {
+        return ResponseEntity(
+            mapOf(
+                "status" to 503,
+                "error" to "Service Unavailable",
+                "message" to "Service is temporarily unavailable. Please try again later."
+            ),
+            HttpStatus.SERVICE_UNAVAILABLE
+        )
+    }
 
     @ExceptionHandler(StatusException::class, StatusRuntimeException::class)
     fun handleGrpcException(e: Exception): ResponseEntity<Map<String, Any>> {

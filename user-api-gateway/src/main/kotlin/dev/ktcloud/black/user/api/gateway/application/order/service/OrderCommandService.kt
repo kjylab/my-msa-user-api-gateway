@@ -6,14 +6,20 @@ import dev.ktcloud.black.order.service.adapter.presentation.web.inbound.grpc.Ord
 import dev.ktcloud.black.order.service.adapter.presentation.web.inbound.grpc.OrderServiceGrpcKt
 import dev.ktcloud.black.user.api.gateway.application.order.dto.OrderLineItemDto
 import dev.ktcloud.black.user.api.gateway.application.order.port.inbound.CreateOrderCommand
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
+import io.github.resilience4j.kotlin.circuitbreaker.executeSuspendFunction
 import net.devh.boot.grpc.client.inject.GrpcClient
 import org.springframework.stereotype.Service
 
 @Service
 class OrderCommandService(
     @GrpcClient("order-service")
-    private val orderServiceStub: OrderServiceGrpcKt.OrderServiceCoroutineStub
+    private val orderServiceStub: OrderServiceGrpcKt.OrderServiceCoroutineStub,
+    circuitBreakerRegistry: CircuitBreakerRegistry,
 ): CreateOrderCommand {
+
+    private val circuitBreaker = circuitBreakerRegistry.circuitBreaker("order-cb")
+
     private fun mapOrderLineItem(orderLineItem: OrderListItemResponseDto): OrderLineItemDto {
         return OrderLineItemDto(
             inventoryId = orderLineItem.inventoryId,
@@ -26,26 +32,26 @@ class OrderCommandService(
     }
 
     override suspend fun createOrder(command: List<CreateOrderCommand.In>): CreateOrderCommand.Out {
-        val createOrderRequestItems = command.map {
-            CreateOrderRequestItem.newBuilder()
-                .setInventoryId(it.inventoryId)
-                .setProductId(it.productId)
-                .setSkuCode(it.skuCode)
-                .setPrice(it.price)
-                .setQuantity(it.quantity)
-                .build()
+        return circuitBreaker.executeSuspendFunction {
+            val createOrderRequestItems = command.map {
+                CreateOrderRequestItem.newBuilder()
+                    .setInventoryId(it.inventoryId)
+                    .setProductId(it.productId)
+                    .setSkuCode(it.skuCode)
+                    .setPrice(it.price)
+                    .setQuantity(it.quantity)
+                    .build()
+            }
+            val createdResponse = orderServiceStub.createOrder(
+                CreateOrderRequest.newBuilder()
+                    .addAllItems(createOrderRequestItems)
+                    .build()
+            )
+            CreateOrderCommand.Out(
+                id = createdResponse.id,
+                status = createdResponse.status,
+                orderLineItems = createdResponse.orderLineItemsList.map(::mapOrderLineItem)
+            )
         }
-
-        val createdResponse = orderServiceStub.createOrder(
-            CreateOrderRequest.newBuilder()
-                .addAllItems(createOrderRequestItems)
-                .build()
-        )
-
-        return CreateOrderCommand.Out(
-            id = createdResponse.id,
-            status = createdResponse.status,
-            orderLineItems = createdResponse.orderLineItemsList.map(::mapOrderLineItem)
-        )
     }
 }
