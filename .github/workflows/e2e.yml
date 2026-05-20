@@ -1,0 +1,37 @@
+name: E2E
+
+on:
+  repository_dispatch:
+    types: [run-e2e]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Wait for ArgoCD sync
+        run: sleep 90
+
+      - name: Run E2E tests
+        run: |
+          newman run tests/troica.postman_collection.json \
+            --environment tests/troica.postman_environment.json \
+            --reporters cli,htmlextra \
+            --reporter-htmlextra-export e2e-report.html \
+            --reporter-htmlextra-title "E2E triggered by ${{ github.event.client_payload.service || 'unknown' }}"
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report-${{ github.event.client_payload.service || 'manual' }}-${{ github.run_id }}
+          path: e2e-report.html
+          retention-days: 7
