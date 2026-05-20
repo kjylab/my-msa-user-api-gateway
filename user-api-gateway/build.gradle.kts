@@ -7,7 +7,13 @@ object Versions {
 
 plugins {
     kotlin("jvm")
-    id("com.google.protobuf") version "0.10.0"
+    id("com.google.protobuf") version "0.9.5"
+}
+
+the<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension>().apply {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.2")
+    }
 }
 
 dependencies {
@@ -25,8 +31,9 @@ dependencies {
     implementation("io.grpc:grpc-stub:${Versions.GRPC_PROTO}")
     implementation("io.grpc:grpc-netty-shaded:${Versions.GRPC_PROTO}")
 
-    implementation("org.springframework.cloud:spring-cloud-starter-gateway:4.1.9")
-    implementation("org.springframework.boot:spring-boot-starter-webflux:3.3.13")
+    // Spring Cloud Gateway 2025.0.x (Spring Boot 3.5.x 호환)
+    implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.5.0")
