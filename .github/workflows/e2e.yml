@@ -43,6 +43,7 @@ jobs:
         run: |
           newman run tests/troica.postman_collection.json \
             --environment tests/troica.postman_environment.json \
+            --env-var "baseUrl=${{ secrets.BASE_URL }}" \
             --reporters cli,htmlextra \
             --reporter-htmlextra-export e2e-report.html \
             --reporter-htmlextra-title "E2E triggered by ${{ github.event.client_payload.service || 'unknown' }}"
